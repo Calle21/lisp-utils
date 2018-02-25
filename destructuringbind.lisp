@@ -1,0 +1,17 @@
+(labels ((mapit (tmp exp)
+	    (let (acc)
+	      (labels ((rec (tmp exp cdr-p)
+			 (cond
+			   ((null tmp)
+			    nil)
+			   ((symbolp tmp)
+			    (push `(,tmp ,(if cdr-p `(list ,@exp) exp))
+				  acc))
+			    (t ; list
+			      (rec (car tmp) (car exp) nil)
+			      (rec (cdr tmp) (cdr exp) t)))))
+		  (rec tmp exp nil)
+		  (nreverse acc)))))
+  (defmacro -destructuring-bind (template expr &body body)
+   `(let ,(mapit template (eval expr))
+      ,@body)))
