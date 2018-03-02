@@ -1,47 +1,43 @@
 
  ; More of an example program
 
-(defconstant *ndots* 100)
+(defconstant NDOTS 100)
 
-(defstruct (dot (:print-function print-dot))
-  (x 0 :type 'fixnum)
-  (y 0 :type 'fixnum)
-  (color 0 :type 'fixnum))
+(defvar *pool* (make-array NDOTS :fill-pointer t))
 
-(defun print-dot (dot stream depth)
-  (declare (ignore dot depth)) ; ?
-  (princ "#<Dot>" stream))
+(dotimes (i NDOTS)
+  (setf (aref *pool* i) (cons 0 0)))
 
-(defvar *pool* (make-array *ndots* :fill-pointer t))
+(defvar *table* (make-array NDOTS :initial-element nil))
 
-(dotimes (i *ndots*)
-  (setf (aref *pool* i) (make-dot)))
+(defmacro get-dot ()
+  '(vector-pop *pool*))
 
-(defvar *table* (make-array *ndots* :initial-element nil))
+(defmacro return-dot (adot)
+  `(vector-push ,adot *pool*))
 
-(defun get-dot (i)
-  (let ((adot (vector-pop *pool*)))
-    (setf (dot-x adot)      (random *width*)
-          (dot-y adot)      (random *height*)
-          (dot-color adot)  (random #.(expt 2 24)) ; 8bit RGB? (read-time evaluation)
-          (svref *table* i) adot)))
-
-(defun return-dot (i)
-  (vector-push (svref *table* i) *pool*)
-  (setf (svref *table* i) nil))
-
-(defun draw (i)
-  (format t "Drew ~A~%" i))
+(defun draw (x y color)
+  (format t "Drew ~A;~A with color ~S~%" x y color))
 
 (defun do-something ()
-  (let ((i (random *ndots*)))
+  (declare (special *width* *height*))
+  (let ((i (random NDOTS)))
     (if (svref *table* i)
-      (progn
-        (return-dot i)
-        (draw i))
-      (progn
-        (get-dot i)
-        (draw i)))))
+      (let ((adot (svref *table* i)))
+        (setf (svref *table* i) nil)
+        (draw (car adot) (cdr adot) 0)
+        (return-dot adot))
+      (let ((adot (get-dot)))
+        (setf (svref *table* i) adot)
+        (let ((x (random *width*))
+              (y (random *height*)))
+          (setf (car adot) x
+                (cdr adot) y)
+          (draw x y (random #.(expt 2 24)))))))) ; 8bit RGB? (read-time evaluation)
+
+(let ((i 100))
+  (defun activity? ()
+    (minusp (decf i))))
 
 (defun screen-saver ()
   (let ((*width* (get-screen-width))
@@ -53,6 +49,3 @@
 
 (defun get-screen-width () 100)
 (defun get-screen-height () 100)
-(let ((i 100))
-  (defun activity? ()
-    (minusp (decf i))))
