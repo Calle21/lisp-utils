@@ -12,7 +12,7 @@
   (declare (ignore dot depth)) ; ?
   (princ "#<Dot>" stream))
 
-(defvar *pool* (make-array *ndots* :fill-pointer t :element-type 'dot))
+(defvar *pool* (make-array *ndots* :fill-pointer t))
 
 (dotimes (i *ndots*)
   (setf (aref *pool* i) (make-dot)))
@@ -43,22 +43,13 @@
         (get-dot i)
         (draw i)))))
 
-(defmacro forever (&body body)
-  (block nil
-    (tagbody
-       start
-     ,@body
-      (go start))))
-
 (defun screen-saver ()
   (let ((*width* (get-screen-width))
         (*height* (get-screen-height)))
     (declare (special *width* *height*))
-    (forever
-      (if (activity?)
-        (return)
-        (do-something)))))
-
+    (do ()
+       ((activity?))
+      (do-something))))
 
 (defun get-screen-width () 100)
 (defun get-screen-height () 100)
