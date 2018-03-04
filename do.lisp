@@ -1,0 +1,17 @@
+(defmacro do- (forms test &body body)
+  `(prog ,(mapcar #'(lambda (form)
+                      (if (symbolp form)
+                        `(,form nil)
+                        `(,(car form) ,(cadr form))))
+                  forms)
+     test
+     (if ,(car test)
+       (progn ,@(cdr test)))
+     ,@body
+     (psetq ,@(mapcan #'(lambda (form)
+                          (if (and (consp form)
+                                   (= (length form) 3))
+                            `(,(car form)
+                              ,(caddr form))))
+                      forms))
+     (go test)))
