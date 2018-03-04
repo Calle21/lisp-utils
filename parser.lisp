@@ -26,9 +26,11 @@
                        nil
                        (nreverse (cons *last* *rest*))))
     (declare (special *last* *rest* *none*))
-    (multiple-value-bind (obj any?) (read-object)
-      (if any?
-        (update-last obj)))))
+    (if (null c)
+      (error "Reached end of file within structure")
+      (multiple-value-bind (obj any?) (read-object)
+        (if any?
+          (update-last obj))))))
 
 (defun read-object ()
   (let ((c (peek-char t *in* nil)))
@@ -46,7 +48,10 @@
 (defun read-new-object ()
   (let ((*none* t))
     (declare (special *none*))
-    (read-object)))
+    (multiple-value-bind (obj any?) (read-object)
+      (if any?
+        obj
+        (error "Expected new object")))))
 
 (defreadmacro #\:
   (declare (special *none* *last*))
@@ -60,3 +65,22 @@
     nil))
 
 (defreadmacro #\( (read-delimited-llist #\)))
+
+(defun invisible (c)
+  (or (char= c #\space)
+      (char= c #\tab)
+      (char= c #\newline)))
+
+(let ((buffer (make-string 100)))
+  (defun read-token ()
+    (let ((token (do ((c (read-char *in* nil)
+                         (read-char *in* nil))
+                      (i 0 (1+ i)))
+                    ((or (null c)
+                           (invisible c)
+                           (assoc c *readttable*))
+                       (subseq buffer 0 i))
+                   (setf (aref buffer i) c))))
+      (if (every #'digit-char-p token)
+        (parse-integer token)
+        (intern (nstring-upcase token))))))
